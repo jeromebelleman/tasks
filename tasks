@@ -1,0 +1,122 @@
+#! /usr/bin/env python
+
+import sys, os
+import argparse
+import datetime
+import subprocess
+import re
+import tempfile
+import json
+
+DATEFMT = '%Y/%m/%d'
+
+REPROJECT      = re.compile(r'^Project: +(?P<project>.*)$')
+REOPENED       = re.compile(r'^Opened: +(?P<opened>\d{4}/\d\d/\d\d)$')
+RECLOSED       = re.compile(r'^Closed: +(?P<closed>\d{4}/\d\d/\d\d)$')
+REPRIORITY     = re.compile(r'^Priority: +(?P<priority>H|M|L)$')
+
+def parse(fhl, tasks):
+    def add(task):
+        task['description'] = task['description'].strip()
+        if task['project'] and task['description'] and \
+            'TODO' not in (task['project'], task['description']):
+            tasks.append(task)
+
+    description = ''
+    infields = True
+    for line in fhl:
+        if infields:
+            if line == '\n':
+                continue
+
+            match = REPROJECT.match(line)
+            if match:
+                task = {'project': match.group('project'), 'description': ''}
+                continue
+
+            match = REOPENED.match(line)
+            if match:
+                task['opened'] = match.group('opened')
+                continue
+
+            match = RECLOSED.match(line)
+            if match:
+                task['closed'] = match.group('closed')
+                continue
+
+            match = REPRIORITY.match(line)
+            if match:
+                task['priority'] = match.group('priority')
+                continue
+
+            if line =='Description:\n':
+                infields = False
+        else:
+            if line == '--\n':
+                add(task)
+                infields = True
+            else:
+                task['description'] += line
+
+    add(task)
+
+    return tasks
+
+def add(args, tasks):
+    # Load template
+    with open(args.shared + '/template') as fhl:
+        template = fhl.read()
+
+    # Open temporary file 
+    tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
+    tmp.write(template.format(
+                              project='TODO',
+                              opened=datetime.date.today().strftime(DATEFMT),
+                              closed='',
+                              priority='',
+                              description='TODO',
+                             ))
+    tmp.flush()
+
+    # Run Vim
+    subprocess.call(['vim', '-S', args.shared + '/vimrc', tmp.name])
+
+    # Parse tasks
+    with open(tmp.name) as fhl:
+        tasks = parse(fhl, tasks)
+
+    # Write tasks to file
+    with open(args.directory + '/tasks.json', 'w') as fhl:
+        json.dump(tasks, fhl, indent=4)
+
+def main():
+    # Arguments
+    parser = argparse.ArgumentParser(description="Manage tasks")
+    parser.add_argument('-d', '--directory', help="task directory",
+                        default='~/.tasks', type=os.path.expanduser)
+    parser.add_argument('-s', '--shared', help="shared directory",
+                        default='/usr/share/tasks')
+    subparser = parser.add_subparsers()
+
+
+    addparser = subparser.add_parser('add', help="add tasks")
+    addparser.set_defaults(func=add)
+
+    args = parser.parse_args()
+
+    # Make directories
+    for dirname in args.directory, args.directory + '/tmp':
+        try:
+            os.mkdir(dirname)
+        except OSError:
+            pass
+
+    # Load tasks
+    with open(args.directory + '/tasks.json') as fhl:
+        tasks = json.load(fhl)
+
+    # Run
+    args.func(args, tasks)
+
+if __name__ == '__main__':
+    sys.exit(main())
