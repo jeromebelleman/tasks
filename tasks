@@ -17,7 +17,6 @@ REPROPRIO = re.compile(r'''^Project:[ ]+(?P<project>\S+)[ ]+
 REDATES   = re.compile(r'''^Opened:[ ]+(?P<opened>\d{4}/\d\d/\d\d)[ ]+
                             Closed:[ ]+(?P<closed>\d{4}/\d\d/\d\d)?$''',
                        re.VERBOSE)
-REUUID    = re.compile(r'^UUID: +(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)$')
 
 def parse(fhl, tasks):
     def add(task):
@@ -36,9 +35,10 @@ def parse(fhl, tasks):
             match = REPROPRIO.match(line)
             if match:
                 task = {
-                        'project': match.group('project'),
-                        'priority': match.group('priority'),
-                        'description': ''
+                        'project':     match.group('project'),
+                        'priority':    match.group('priority'),
+                        'uuid':        str(uuid.uuid4()),
+                        'description': '',
                        }
                 continue
 
@@ -46,11 +46,6 @@ def parse(fhl, tasks):
             if match:
                 task['opened'] = match.group('opened')
                 task['closed'] = match.group('closed')
-                continue
-
-            match = REUUID.match(line)
-            if match:
-                task['uuid'] = match.group('uuid')
                 continue
 
             if line =='Description:\n':
@@ -78,7 +73,7 @@ def add(args, tasks):
                               priority='TODO',
                               opened=datetime.date.today().strftime(DATEFMT),
                               closed='',
-                              uuid=uuid.uuid4(),
+                              uuid='',
                               description='TODO',
                              ))
     tmp.flush()
