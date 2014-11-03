@@ -1,6 +1,10 @@
 #! /usr/bin/env python
 
-import sys, os
+import sys
+reload(sys)
+sys.setdefaultencoding('UTF8')
+
+import os
 import argparse
 import datetime
 import subprocess
@@ -61,6 +65,30 @@ def parse(fhl, tasks):
 
     return tasks
 
+def ls(args, tasks):
+    # Load template
+    with open(args.shared + '/template') as fhl:
+        template = fhl.read()
+
+    # Open temporary file 
+    tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
+
+    for task in tasks:
+        tmp.write(template.format(
+            project=task['project'],
+            priority=task['priority'],
+            opened=task['opened'],
+            closed=task['closed'] if 'closed' in task else '',
+            uuid=task['uuid'],
+            description=task['description'],
+        ))
+        print >> tmp, '\n--\n'
+    tmp.flush()
+
+    # Run Vim
+    subprocess.call(['vim', '-S', args.shared + '/vimrc', tmp.name])
+
+
 def add(args, tasks):
     # Load template
     with open(args.shared + '/template') as fhl:
@@ -101,6 +129,9 @@ def main():
 
     addparser = subparser.add_parser('add', help="add tasks")
     addparser.set_defaults(func=add)
+
+    lsparser = subparser.add_parser('ls', help="list tasks")
+    lsparser.set_defaults(func=ls)
 
     args = parser.parse_args()
 
