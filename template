@@ -1,6 +1,5 @@
-Project:  {project}
-Opened:   {opened}
-Closed:   {closed}
-Priority: {priority}
+Project: {project:<36}  Priority: {priority}
+Opened:  {opened:<36}  Closed:   {closed}
+UUID:    {uuid:<36}
 Description:
 {description}

@@ -7,13 +7,17 @@ import subprocess
 import re
 import tempfile
 import json
+import uuid
 
 DATEFMT = '%Y/%m/%d'
 
-REPROJECT      = re.compile(r'^Project: +(?P<project>.*)$')
-REOPENED       = re.compile(r'^Opened: +(?P<opened>\d{4}/\d\d/\d\d)$')
-RECLOSED       = re.compile(r'^Closed: +(?P<closed>\d{4}/\d\d/\d\d)$')
-REPRIORITY     = re.compile(r'^Priority: +(?P<priority>H|M|L)$')
+REPROPRIO = re.compile(r'''^Project:[ ]+(?P<project>\S+)[ ]+
+                            Priority:[ ]+(?P<priority>\S+)$''',
+                       re.VERBOSE)
+REDATES   = re.compile(r'''^Opened:[ ]+(?P<opened>\d{4}/\d\d/\d\d)[ ]+
+                            Closed:[ ]+(?P<closed>\d{4}/\d\d/\d\d)?$''',
+                       re.VERBOSE)
+REUUID    = re.compile(r'^UUID: +(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)$')
 
 def parse(fhl, tasks):
     def add(task):
@@ -29,24 +33,24 @@ def parse(fhl, tasks):
             if line == '\n':
                 continue
 
-            match = REPROJECT.match(line)
+            match = REPROPRIO.match(line)
             if match:
-                task = {'project': match.group('project'), 'description': ''}
+                task = {
+                        'project': match.group('project'),
+                        'priority': match.group('priority'),
+                        'description': ''
+                       }
                 continue
 
-            match = REOPENED.match(line)
+            match = REDATES.match(line)
             if match:
                 task['opened'] = match.group('opened')
-                continue
-
-            match = RECLOSED.match(line)
-            if match:
                 task['closed'] = match.group('closed')
                 continue
 
-            match = REPRIORITY.match(line)
+            match = REUUID.match(line)
             if match:
-                task['priority'] = match.group('priority')
+                task['uuid'] = match.group('uuid')
                 continue
 
             if line =='Description:\n':
@@ -71,9 +75,10 @@ def add(args, tasks):
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
     tmp.write(template.format(
                               project='TODO',
+                              priority='TODO',
                               opened=datetime.date.today().strftime(DATEFMT),
                               closed='',
-                              priority='',
+                              uuid=uuid.uuid4(),
                               description='TODO',
                              ))
     tmp.flush()
