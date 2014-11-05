@@ -80,8 +80,12 @@ def ls(args, tasks):
     with open(args.shared + '/template') as fhl:
         template = fhl.read()
 
-    # TODO Filter by whatever is specified in args
-    tasksubset = tasks
+    # Filter by whatever is specified in args
+    if args.project:
+        tasksubset = {task: tasks[task] for task in tasks
+                      if tasks[task]['project'] == args.project}
+    else:
+        tasksubset = tasks
 
     # Write tasks to temporary file
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
@@ -154,6 +158,7 @@ def main():
     addparser.set_defaults(func=add)
 
     lsparser = subparser.add_parser('ls', help="list tasks")
+    lsparser.add_argument('-p', '--project')
     lsparser.set_defaults(func=ls)
 
     args = parser.parse_args()
