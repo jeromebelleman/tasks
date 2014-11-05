@@ -53,7 +53,8 @@ def parse(fhl, tasks):
             match = REDATES.match(line)
             if match:
                 task['opened'] = match.group('opened')
-                task['closed'] = match.group('closed')
+                if match.group('closed'):
+                    task['closed'] = match.group('closed')
                 continue
 
             match = REUUID.match(line)
@@ -81,11 +82,13 @@ def ls(args, tasks):
         template = fhl.read()
 
     # Filter by whatever is specified in args
+    tasksubset = tasks
     if args.project:
-        tasksubset = {task: tasks[task] for task in tasks
-                      if tasks[task]['project'] == args.project}
-    else:
-        tasksubset = tasks
+        tasksubset = {task: tasksubset[task] for task in tasksubset
+                      if tasksubset[task]['project'] == args.project}
+    if not args.closed:
+        tasksubset = {task: tasksubset[task] for task in tasksubset
+                      if 'closed' not in tasksubset[task]}
 
     # Write tasks to temporary file
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
@@ -96,7 +99,8 @@ def ls(args, tasks):
             project=tasksubset[task]['project'],
             priority=tasksubset[task]['priority'],
             opened=tasksubset[task]['opened'],
-            closed=tasksubset[task]['closed'] if 'closed' in task else '',
+            closed=tasksubset[task]['closed']
+                   if 'closed' in tasksubset[task] else '',
             uuid=task,
             description=tasksubset[task]['description'],
         ))
@@ -161,6 +165,8 @@ def main():
 
     lsparser = subparser.add_parser('ls', help="list tasks")
     lsparser.add_argument('-p', '--project')
+    lsparser.add_argument('-c', '--closed', help="display closed tasks too",
+                          action='store_true')
     lsparser.set_defaults(func=ls)
 
     args = parser.parse_args()
