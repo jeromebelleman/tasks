@@ -150,6 +150,10 @@ def add(args, tasks):
     with open(args.directory + '/tasks.json', 'w') as fhl:
         json.dump(tasks, fhl, indent=4)
 
+def projects(args, tasks):
+    for project in set([tasks[task]['project'] for task in tasks]):
+        print project
+
 def main():
     # Arguments
     parser = argparse.ArgumentParser(description="Manage tasks")
@@ -159,7 +163,6 @@ def main():
                         default='/usr/share/tasks')
     subparser = parser.add_subparsers()
 
-
     addparser = subparser.add_parser('add', help="add tasks")
     addparser.set_defaults(func=add)
 
@@ -168,6 +171,10 @@ def main():
     lsparser.add_argument('-c', '--closed', help="display closed tasks too",
                           action='store_true')
     lsparser.set_defaults(func=ls)
+
+    projectsparser = subparser.add_parser('projects',
+                                          help="list projects (for completion)")
+    projectsparser.set_defaults(func=projects)
 
     args = parser.parse_args()
 
