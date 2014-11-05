@@ -21,13 +21,17 @@ REPROPRIO = re.compile(r'''^Project:[ ]+(?P<project>\S+)[ ]+
 REDATES   = re.compile(r'''^Opened:[ ]+(?P<opened>\d{4}/\d\d/\d\d)[ ]+
                             Closed:[ ]+(?P<closed>\d{4}/\d\d/\d\d)?$''',
                        re.VERBOSE)
+REUUID    = re.compile(r'^UUID:[ ]+(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)$')
 
 def parse(fhl, tasks):
     def add(task):
         task['description'] = task['description'].strip()
         if task['project'] and task['description'] and \
             'TODO' not in (task['project'], task['description']):
-            tasks[str(uuid.uuid4())] = task
+            if uuid4:
+                tasks[uuid4] = task
+            else:
+                tasks[str(uuid.uuid4())] = task
 
     description = ''
     infields = True
@@ -38,6 +42,7 @@ def parse(fhl, tasks):
 
             match = REPROPRIO.match(line)
             if match:
+                uuid4 = None
                 task = {
                         'project':     match.group('project'),
                         'priority':    match.group('priority'),
@@ -51,6 +56,11 @@ def parse(fhl, tasks):
                 task['closed'] = match.group('closed')
                 continue
 
+            match = REUUID.match(line)
+            if match:
+                uuid4 = match.group('uuid')
+                continue
+
             if line =='Description:\n':
                 infields = False
         else:
@@ -60,24 +70,29 @@ def parse(fhl, tasks):
             else:
                 task['description'] += line
 
-    add(task)
+    try:
+        add(task)
+    except UnboundLocalError:
+        pass
 
 def ls(args, tasks):
     # Load template
     with open(args.shared + '/template') as fhl:
         template = fhl.read()
 
-    # Open temporary file 
-    tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
+    # TODO Filter by whatever is specified in args
+    tasksubset = tasks
 
-    for task in tasks:
+    # Write tasks to temporary file
+    tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
+    for task in tasksubset:
         tmp.write(template.format(
-            project=task['project'],
-            priority=task['priority'],
-            opened=task['opened'],
-            closed=task['closed'] if 'closed' in task else '',
-            uuid=task['uuid'],
-            description=task['description'],
+            project=tasksubset[task]['project'],
+            priority=tasksubset[task]['priority'],
+            opened=tasksubset[task]['opened'],
+            closed=tasksubset[task]['closed'] if 'closed' in task else '',
+            uuid=task,
+            description=tasksubset[task]['description'],
         ))
         print >> tmp, '\n--\n'
     tmp.flush()
@@ -85,13 +100,24 @@ def ls(args, tasks):
     # Run Vim
     subprocess.call(['vim', '-S', args.shared + '/vimrc', tmp.name])
 
+    # Parse tasks
+    with open(tmp.name) as fhl:
+        parse(fhl, tasksubset)
+
+    # Apply changes
+    for task in tasksubset:
+        tasks[task] = tasksubset[task]
+
+    # Write tasks to file
+    with open(args.directory + '/tasks.json', 'w') as fhl:
+        json.dump(tasks, fhl, indent=4)
 
 def add(args, tasks):
     # Load template
     with open(args.shared + '/template') as fhl:
         template = fhl.read()
 
-    # Open temporary file 
+    # Open temporary file
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
     tmp.write(template.format(
                               project='TODO',
