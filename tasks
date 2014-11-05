@@ -27,7 +27,7 @@ def parse(fhl, tasks):
         task['description'] = task['description'].strip()
         if task['project'] and task['description'] and \
             'TODO' not in (task['project'], task['description']):
-            tasks.append(task)
+            tasks[str(uuid.uuid4())] = task
 
     description = ''
     infields = True
@@ -41,7 +41,6 @@ def parse(fhl, tasks):
                 task = {
                         'project':     match.group('project'),
                         'priority':    match.group('priority'),
-                        'uuid':        str(uuid.uuid4()),
                         'description': '',
                        }
                 continue
@@ -62,8 +61,6 @@ def parse(fhl, tasks):
                 task['description'] += line
 
     add(task)
-
-    return tasks
 
 def ls(args, tasks):
     # Load template
@@ -111,7 +108,7 @@ def add(args, tasks):
 
     # Parse tasks
     with open(tmp.name) as fhl:
-        tasks = parse(fhl, tasks)
+        parse(fhl, tasks)
 
     # Write tasks to file
     with open(args.directory + '/tasks.json', 'w') as fhl:
@@ -143,8 +140,11 @@ def main():
             pass
 
     # Load tasks
-    with open(args.directory + '/tasks.json') as fhl:
-        tasks = json.load(fhl)
+    try:
+        with open(args.directory + '/tasks.json') as fhl:
+            tasks = json.load(fhl)
+    except IOError:
+        tasks = {}
 
     # Run
     args.func(args, tasks)
