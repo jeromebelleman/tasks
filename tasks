@@ -89,7 +89,9 @@ def ls(args, tasks):
 
     # Write tasks to temporary file
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
-    for task in tasksubset:
+    for task in sorted(tasksubset,
+                       key=lambda task: tasksubset[task]['priority'],
+                       reverse=True):
         tmp.write(template.format(
             project=tasksubset[task]['project'],
             priority=tasksubset[task]['priority'],
