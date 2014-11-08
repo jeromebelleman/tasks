@@ -27,8 +27,16 @@ fun! CompleteField(findstart, base)
     let today = strftime('%Y/%m/%d')
 
     if line[:col] =~ 'Priority:'
-      for m in [today] + split(system('tasks priorities'))
-        if m =~ '^' . a:base
+      let priorities = []
+      " move priorities and description into structure
+      for line in split(system('tasks priorities'), '\n')
+        let split = split(line)
+        call add(priorities, {'word': split[0], 'info': join(split[1:], ' ')})
+      endfor
+
+      " complete
+      for m in [{'word': today, 'info': 'Today'}] + priorities
+        if m['word'] =~ '^' . a:base
           call add(res, m)
         endif
       endfor

@@ -183,12 +183,19 @@ def add(args, tasks):
         json.dump(tasks, fhl, indent=4)
 
 def priorities(args, tasks):
-    for priority in set([tasks[task]['priority'] for task in tasks
-                         if 'priority' in tasks[task]]):
-        try:
-            print float(priority)
-        except ValueError:
-            pass
+    # Find each distinct priority with a sample description
+    priorities = {}
+    for task in [task for task in tasks if 'closed' not in tasks[task]]:
+        if tasks[task]['priority'] not in priorities:
+            try:
+                priorities[float(tasks[task]['priority'])] = \
+                    tasks[task]['description']
+            except ValueError:
+                pass
+
+    # Report
+    for priority in priorities:
+        print priority, priorities[priority]
 
 def projects(args, tasks):
     for project in set([tasks[task]['project'] for task in tasks]):
