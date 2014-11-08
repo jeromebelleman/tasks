@@ -27,7 +27,7 @@ fun! CompleteField(findstart, base)
     let today = strftime('%Y/%m/%d')
 
     if line[:col] =~ 'Priority:'
-      for m in [today, -2, -1, 0, 1, 2, 3]
+      for m in [today] + split(system('tasks priorities'))
         if m =~ '^' . a:base
           call add(res, m)
         endif

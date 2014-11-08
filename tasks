@@ -182,6 +182,14 @@ def add(args, tasks):
     with open(args.directory + '/tasks.json', 'w') as fhl:
         json.dump(tasks, fhl, indent=4)
 
+def priorities(args, tasks):
+    for priority in set([tasks[task]['priority'] for task in tasks
+                         if 'priority' in tasks[task]]):
+        try:
+            print float(priority)
+        except ValueError:
+            pass
+
 def projects(args, tasks):
     for project in set([tasks[task]['project'] for task in tasks]):
         print project
@@ -207,6 +215,10 @@ def main():
     projectsparser = subparser.add_parser('projects',
                                           help="list projects (for completion)")
     projectsparser.set_defaults(func=projects)
+
+    priosparser = subparser.add_parser('priorities',
+                                       help="list priorities (for completion)")
+    priosparser.set_defaults(func=priorities)
 
     args = parser.parse_args()
 
