@@ -6,6 +6,6 @@ setup(name='tasks',
       version='1.0',
       scripts=['tasks'],
       data_files=[
-                  ('/usr/share/tasks', ['vimrc']),
+                  ('share/tasks', ['vimrc', 'template']),
                  ],
      )
