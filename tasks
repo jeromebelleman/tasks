@@ -114,7 +114,7 @@ def ls(args, tasks):
     tasksubset = tasks
     if args.project:
         tasksubset = {task: tasksubset[task] for task in tasksubset
-                      if tasksubset[task]['project'] == args.project}
+                      if tasksubset[task]['project'].startswith(args.project)}
     if not args.closed:
         tasksubset = {task: tasksubset[task] for task in tasksubset
                       if 'closed' not in tasksubset[task]}
