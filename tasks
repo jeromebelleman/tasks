@@ -14,7 +14,7 @@ import json
 import uuid
 
 # TODO Recurring tasks
-# TODO Add tasks from ls()
+# TODO Handle simultaneous instances
 
 DATEFMT = '%Y/%m/%d'
 
@@ -77,11 +77,8 @@ def parse(fhl):
             else:
                 task['description'] += line
 
-    try:
+    if not infields:
         edit(task)
-        # FIXME Called once too many?
-    except UnboundLocalError:
-        pass
 
     return tasks
 
