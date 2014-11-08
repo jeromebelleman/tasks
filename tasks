@@ -6,7 +6,7 @@ sys.setdefaultencoding('UTF8')
 
 import os
 import argparse
-import datetime
+import datetime, time
 import subprocess
 import re
 import tempfile
@@ -14,15 +14,15 @@ import json
 import uuid
 
 # TODO Recurring tasks
-# TODO Priorities from deadlines
+# TODO Add tasks from ls()
 
 DATEFMT = '%Y/%m/%d'
 
 REPROPRIO = re.compile(r'''^Project:[ ]+(?P<project>\S+)[ ]+
-                            Priority:[ ]+(?P<priority>\S+)$''',
+                            Priority:[ ]*(?P<priority>\S+)?$''',
                        re.VERBOSE)
 REDATES   = re.compile(r'''^Opened:[ ]+(?P<opened>\d{4}/\d\d/\d\d)[ ]+
-                            Closed:[ ]+(?P<closed>\d{4}/\d\d/\d\d)?$''',
+                            Closed:[ ]*(?P<closed>\d{4}/\d\d/\d\d)?$''',
                        re.VERBOSE)
 REUUID    = re.compile(r'^UUID:[ ]+(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)$')
 
@@ -50,9 +50,10 @@ def parse(fhl):
                 uuid4 = None
                 task = {
                         'project':     match.group('project'),
-                        'priority':    match.group('priority'),
                         'description': '',
                        }
+                if match.group('priority'):
+                    task['priority'] = match.group('priority')
                 continue
 
             match = REDATES.match(line)
@@ -85,9 +86,32 @@ def parse(fhl):
     return tasks
 
 def ls(args, tasks):
+    def prioritykey(task):
+        try:
+            priority = tasksubset[task]['priority']
+            try:
+                return float(priority)
+            except ValueError:
+                due = datetime.datetime.strptime(priority, DATEFMT)
+                due = datetime.date(due.year, due.month, due.day)
+                return topprio - (due - datetime.date.today()).days
+        except TypeError: # When topprio is None
+                return -time.mktime(due.timetuple())
+        except KeyError:
+            return None
+
     # Load template
     with open(args.shared + '/template') as fhl:
         template = fhl.read()
+
+    # Find top priority
+    topprio = None
+    for task in tasks:
+        try:
+            newprio = int(tasks[task]['priority'])
+            topprio = newprio if newprio > topprio else topprio
+        except (ValueError, KeyError):
+            pass
 
     # Filter by whatever is specified in args
     tasksubset = tasks
@@ -100,12 +124,11 @@ def ls(args, tasks):
 
     # Write tasks to temporary file
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
-    for task in sorted(tasksubset,
-                       key=lambda task: tasksubset[task]['priority'],
-                       reverse=True):
+    for task in sorted(tasksubset, key=prioritykey, reverse=True):
         tmp.write(template.format(
             project=tasksubset[task]['project'],
-            priority=tasksubset[task]['priority'],
+            priority=tasksubset[task]['priority']
+                     if 'priority' in tasksubset[task] else '',
             opened=tasksubset[task]['opened'],
             closed=tasksubset[task]['closed']
                    if 'closed' in tasksubset[task] else '',
@@ -126,7 +149,7 @@ def ls(args, tasks):
     for task in newtasksubset:
         tasks[task] = newtasksubset[task]
 
-    # Apply removals
+    # Remove tasks
     for task in set(tasksubset) - set(newtasksubset):
         del tasks[task]
 
@@ -143,7 +166,7 @@ def add(args, tasks):
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
     tmp.write(template.format(
                               project='TODO',
-                              priority='TODO',
+                              priority='',
                               opened=datetime.date.today().strftime(DATEFMT),
                               closed='',
                               uuid='',
