@@ -13,6 +13,9 @@ import tempfile
 import json
 import uuid
 
+# TODO Recurring tasks
+# TODO Priorities from deadlines
+
 DATEFMT = '%Y/%m/%d'
 
 REPROPRIO = re.compile(r'''^Project:[ ]+(?P<project>\S+)[ ]+
@@ -23,8 +26,8 @@ REDATES   = re.compile(r'''^Opened:[ ]+(?P<opened>\d{4}/\d\d/\d\d)[ ]+
                        re.VERBOSE)
 REUUID    = re.compile(r'^UUID:[ ]+(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)$')
 
-def parse(fhl, tasks):
-    def add(task):
+def parse(fhl):
+    def edit(task):
         task['description'] = task['description'].strip()
         if task['project'] and task['description'] and \
             'TODO' not in (task['project'], task['description']):
@@ -32,6 +35,8 @@ def parse(fhl, tasks):
                 tasks[uuid4] = task
             else:
                 tasks[str(uuid.uuid4())] = task
+
+    tasks = {}
 
     description = ''
     infields = True
@@ -66,15 +71,18 @@ def parse(fhl, tasks):
                 infields = False
         else:
             if line == '--\n':
-                add(task)
+                edit(task)
                 infields = True
             else:
                 task['description'] += line
 
     try:
-        add(task)
+        edit(task)
+        # FIXME Called once too many?
     except UnboundLocalError:
         pass
+
+    return tasks
 
 def ls(args, tasks):
     # Load template
@@ -112,11 +120,15 @@ def ls(args, tasks):
 
     # Parse tasks
     with open(tmp.name) as fhl:
-        parse(fhl, tasksubset)
+        newtasksubset = parse(fhl)
 
     # Apply changes
-    for task in tasksubset:
-        tasks[task] = tasksubset[task]
+    for task in newtasksubset:
+        tasks[task] = newtasksubset[task]
+
+    # Apply removals
+    for task in set(tasksubset) - set(newtasksubset):
+        del tasks[task]
 
     # Write tasks to file
     with open(args.directory + '/tasks.json', 'w') as fhl:
@@ -144,7 +156,7 @@ def add(args, tasks):
 
     # Parse tasks
     with open(tmp.name) as fhl:
-        parse(fhl, tasks)
+        tasks = dict(tasks.items() + parse(fhl).items())
 
     # Write tasks to file
     with open(args.directory + '/tasks.json', 'w') as fhl:
