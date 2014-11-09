@@ -14,7 +14,6 @@ import json
 import uuid
 
 # TODO Recurring tasks
-# TODO Git
 
 DATEFMT = '%Y/%m/%d'
 
@@ -236,6 +235,17 @@ def projects(args, tasks):
     for project in sorted(set([tasks[task]['project'] for task in tasks])):
         print project
 
+def merge(args, tasks):
+    try:
+        subprocess.check_call(['git', 'remote', 'add', 'remote',
+                               args.repository], cwd=args.directory)
+        subprocess.check_call(['git', 'pull', 'remote', 'master'],
+                              cwd=args.directory)
+        subprocess.check_call(['git', 'remote', 'remove', 'remote'],
+                              cwd=args.directory)
+    except subprocess.CalledProcessError:
+        pass
+
 def importcb(args, tasks):
     try:
         fhl = open(args.filepath)
@@ -340,6 +350,12 @@ def main():
     priosparser = subparser.add_parser('priorities',
                                        help="list priorities (for completion)")
     priosparser.set_defaults(func=priorities)
+
+    mergeparser = subparser.add_parser('merge',
+                                        help="merge from other repository")
+    mergeparser.add_argument('repository', help="tasks directory",
+                              type=os.path.expanduser)
+    mergeparser.set_defaults(func=merge)
 
     importparser = subparser.add_parser('import',
                                         help="import from Taskwarrior")
