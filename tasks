@@ -53,13 +53,13 @@ class RecurringException(Exception):
 def loadtasks(directory):
     try:
         with open(directory + '/tasks.json') as fhl:
-            return json.load(fhl)
+            return dict(json.load(fhl))
     except (IOError, ValueError):
         return {}
 
 def dumptasks(directory, tasks):
     with open(directory + '/tasks.json', 'w') as fhl:
-        json.dump(tasks, fhl, indent=4)
+        json.dump(sorted(tasks.items()), fhl, indent=4)
     commit(directory)
 
 def parse(fhl):
@@ -312,7 +312,7 @@ def importcb(args, tasks):
         except RecurringException:
             pass
 
-    print json.dumps(tasks, indent=4)
+    print json.dumps(sorted(tasks.items()), indent=4)
     fhl.close()
 
 def main():
