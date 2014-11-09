@@ -198,7 +198,7 @@ def priorities(args, tasks):
         print priority, priorities[priority]
 
 def projects(args, tasks):
-    for project in set([tasks[task]['project'] for task in tasks]):
+    for project in sorted(set([tasks[task]['project'] for task in tasks])):
         print project
 
 def main():
