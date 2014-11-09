@@ -25,6 +25,12 @@ REDATES   = re.compile(r'''^Opened:[ ]+(?P<opened>\d{4}/\d\d/\d\d)[ ]+
                             Closed:[ ]*(?P<closed>\d{4}/\d\d/\d\d)?$''',
                        re.VERBOSE)
 REUUID    = re.compile(r'^UUID:[ ]+(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)$')
+RETW      = re.compile(r'(\w+:"[^"]+")')
+
+NOPROJ    = 'noproject'
+
+class RecurringException(Exception):
+    pass
 
 def parse(fhl):
     def edit(task):
@@ -201,6 +207,85 @@ def projects(args, tasks):
     for project in sorted(set([tasks[task]['project'] for task in tasks])):
         print project
 
+def importcb(args, tasks):
+    try:
+        fhl = open(args.filepath)
+    except IOError, exc:
+        print >> sys.stderr, exc
+        return 1
+
+    tasks = {}
+    for line in fhl:
+        fields = RETW.split(line)
+        task, tags, annotations = {}, None, []
+        try:
+            # Parse fields
+            for field in fields:
+                if field in ('[', ']\n', ' '):
+                    continue
+
+                key, value = field.split(':', 1)
+                if key == 'description':
+                    task['description'] = value[1:-1]
+                elif key == 'entry':
+                    opened = datetime.date.fromtimestamp(float(value[1:-1]))
+                    task['opened'] = opened.strftime(DATEFMT)
+                elif key == 'end':
+                    closed = datetime.date.fromtimestamp(float(value[1:-1]))
+                    task['closed'] = closed.strftime(DATEFMT)
+                elif key == 'priority' and 'priority' not in task:
+                    # Set numeric priority only if no due time
+                    priority = value[1:-1]
+                    if priority == 'L':
+                        task['priority'] = 1
+                    elif priority == 'M':
+                        task['priority'] = 2
+                    elif priority == 'H':
+                        task['priority'] = 3
+                elif key == 'project':
+                    task['project'] = value[1:-1]
+                elif key == 'due':
+                    priority = datetime.date.fromtimestamp(float(value[1:-1]))
+                    task['priority'] = priority.strftime(DATEFMT)
+                elif key.startswith('annotation_'):
+                    annotations.append(value[1:-1])
+                elif key == 'uuid':
+                    uuid4 = value[1:-1]
+                elif key == 'tags':
+                    tags = value[1:-1]
+                elif key == 'recur':
+                    raise RecurringException
+                elif key in ('imask', 'mask', 'parent', 'status',
+                             'priority', 'wait', 'start', 'depends',
+                             'until'):
+                    pass
+                else:
+                    print >> sys.stderr, "Unexpected field: " + key
+                    return 1
+
+            # Build task
+            if 'project' not in task:
+                task['project'] = NOPROJ
+
+            if tags == 'work':
+                task['project'] = 'cern.' + task['project']
+            elif not tags:
+                task['project'] = 'home.' + task['project']
+            else:
+                print >> sys.stderr, "Unexpected tags: " + tags
+                return 1
+            
+            task['description'] = \
+                '\n\n'.join([task['description']] + annotations)
+
+            # Add task
+            tasks[uuid4] = task
+        except RecurringException:
+            pass
+
+    print json.dumps(tasks, indent=4)
+    fhl.close()
+
 def main():
     # Arguments
     parser = argparse.ArgumentParser(description="Manage tasks")
@@ -227,6 +312,12 @@ def main():
                                        help="list priorities (for completion)")
     priosparser.set_defaults(func=priorities)
 
+    importparser = subparser.add_parser('import',
+                                        help="import from Taskwarrior")
+    importparser.add_argument(metavar='file', dest='filepath',
+                              type=os.path.expanduser, help="file path")
+    importparser.set_defaults(func=importcb)
+
     args = parser.parse_args()
 
     # Make directories
@@ -240,7 +331,7 @@ def main():
     try:
         with open(args.directory + '/tasks.json') as fhl:
             tasks = json.load(fhl)
-    except IOError:
+    except (IOError, ValueError):
         tasks = {}
 
     # Run
