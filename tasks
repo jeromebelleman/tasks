@@ -29,6 +29,24 @@ RETW      = re.compile(r'(\w+:"[^"]+")')
 
 NOPROJ    = 'noproject'
 
+def commit(directory):
+    def commit():
+        subprocess.check_call(['git', 'commit', '-qmAutocommit'], cwd=directory)
+
+    def add():
+        subprocess.check_call(['git', 'add', 'tasks.json'], cwd=directory)
+
+    try:
+        add()
+    except subprocess.CalledProcessError:
+        subprocess.check_call(['git', 'init', '-q'], cwd=directory)
+        add()
+
+    try:
+        commit()
+    except subprocess.CalledProcessError:
+        pass
+
 class RecurringException(Exception):
     pass
 
@@ -38,6 +56,11 @@ def loadtasks(directory):
             return json.load(fhl)
     except (IOError, ValueError):
         return {}
+
+def dumptasks(directory, tasks):
+    with open(directory + '/tasks.json', 'w') as fhl:
+        json.dump(tasks, fhl, indent=4)
+    commit(directory)
 
 def parse(fhl):
     def edit(task):
@@ -164,8 +187,7 @@ def ls(args, tasks):
         del tasks[task]
 
     # Write tasks to file
-    with open(args.directory + '/tasks.json', 'w') as fhl:
-        json.dump(tasks, fhl, indent=4)
+    dumptasks(args.directory, tasks)
 
 def add(args, tasks):
     # Load template
@@ -193,8 +215,7 @@ def add(args, tasks):
         tasks = dict(tasks.items() + parse(fhl).items())
 
     # Write tasks to file
-    with open(args.directory + '/tasks.json', 'w') as fhl:
-        json.dump(tasks, fhl, indent=4)
+    dumptasks(args.directory, tasks)
 
 def priorities(args, tasks):
     # Find each distinct priority with a sample description
