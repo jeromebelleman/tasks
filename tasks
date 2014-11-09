@@ -14,7 +14,7 @@ import json
 import uuid
 
 # TODO Recurring tasks
-# TODO Handle simultaneous instances
+# TODO Git
 
 DATEFMT = '%Y/%m/%d'
 
@@ -31,6 +31,13 @@ NOPROJ    = 'noproject'
 
 class RecurringException(Exception):
     pass
+
+def loadtasks(directory):
+    try:
+        with open(directory + '/tasks.json') as fhl:
+            return json.load(fhl)
+    except (IOError, ValueError):
+        return {}
 
 def parse(fhl):
     def edit(task):
@@ -148,10 +155,10 @@ def ls(args, tasks):
     with open(tmp.name) as fhl:
         newtasksubset = parse(fhl)
 
+    tasks = loadtasks(args.directory)
     # Apply changes
     for task in newtasksubset:
         tasks[task] = newtasksubset[task]
-
     # Remove tasks
     for task in set(tasksubset) - set(newtasksubset):
         del tasks[task]
@@ -180,7 +187,8 @@ def add(args, tasks):
     # Run Vim
     subprocess.call(['vim', '-S', args.shared + '/vimrc', tmp.name])
 
-    # Parse tasks
+    # Add new tasks
+    tasks = loadtasks(args.directory)
     with open(tmp.name) as fhl:
         tasks = dict(tasks.items() + parse(fhl).items())
 
@@ -328,11 +336,7 @@ def main():
             pass
 
     # Load tasks
-    try:
-        with open(args.directory + '/tasks.json') as fhl:
-            tasks = json.load(fhl)
-    except (IOError, ValueError):
-        tasks = {}
+    tasks = loadtasks(args.directory)
 
     # Run
     args.func(args, tasks)
