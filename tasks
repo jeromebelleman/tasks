@@ -276,11 +276,11 @@ def importcb(args, tasks):
                     # Set numeric priority only if no due time
                     priority = value[1:-1]
                     if priority == 'L':
-                        task['priority'] = 1
+                        task['priority'] = '1'
                     elif priority == 'M':
-                        task['priority'] = 2
+                        task['priority'] = '2'
                     elif priority == 'H':
-                        task['priority'] = 3
+                        task['priority'] = '3'
                 elif key == 'project':
                     task['project'] = value[1:-1]
                 elif key == 'due':
