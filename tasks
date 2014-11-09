@@ -14,16 +14,17 @@ import json
 import uuid
 
 # TODO Recurring tasks
+# TODO Complete priority from current filter
 
 DATEFMT = '%Y/%m/%d'
 
 REPROPRIO = re.compile(r'''^Project:[ ]+(?P<project>\S+)[ ]+
-                            Priority:[ ]*(?P<priority>\S+)?$''',
+                            Priority:[ ]*(?P<priority>\S+)?''',
                        re.VERBOSE)
 REDATES   = re.compile(r'''^Opened:[ ]+(?P<opened>\d{4}/\d\d/\d\d)[ ]+
-                            Closed:[ ]*(?P<closed>\d{4}/\d\d/\d\d)?$''',
+                            Closed:[ ]*(?P<closed>\d{4}/\d\d/\d\d)?''',
                        re.VERBOSE)
-REUUID    = re.compile(r'^UUID:[ ]+(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)$')
+REUUID    = re.compile(r'^UUID:[ ]+(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)')
 RETW      = re.compile(r'(\w+:"[^"]+")')
 
 NOPROJ    = 'noproject'
@@ -73,7 +74,6 @@ def parse(fhl):
 
     tasks = {}
 
-    description = ''
     infields = True
     for line in fhl:
         if infields:
