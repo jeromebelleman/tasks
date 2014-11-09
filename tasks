@@ -217,15 +217,15 @@ def add(args, tasks):
     dumptasks(args.directory, tasks)
 
 def priorities(args, tasks):
-    # Find each distinct priority with a sample description
+    # Find each distinct numeric priority with a sample description
     priorities = {}
     for task in [task for task in tasks if 'closed' not in tasks[task]]:
-        if tasks[task]['priority'] not in priorities:
-            try:
+        try:
+            if tasks[task]['priority'] not in priorities:
                 priorities[float(tasks[task]['priority'])] = \
-                    tasks[task]['description']
-            except ValueError:
-                pass
+                    tasks[task]['description'].split('\n')[0]
+        except (ValueError, KeyError):
+            pass
 
     # Report
     for priority in priorities:
