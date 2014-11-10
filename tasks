@@ -14,7 +14,7 @@ import json
 import uuid
 
 # TODO Recurring tasks
-# TODO Complete priority from current filter
+# TODO Complete priority from current filter for new tasks
 
 DATEFMT = '%Y/%m/%d'
 
@@ -77,7 +77,7 @@ def parse(fhl):
     infields = True
     for line in fhl:
         if infields:
-            if line == '\n':
+            if line == '\n' or line[0] == '#':
                 continue
 
             match = REPROPRIO.match(line)
@@ -156,6 +156,8 @@ def ls(args, tasks):
 
     # Write tasks to temporary file
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
+    if args.project:
+        print >> tmp, '# ' + args.project
     for task in sorted(tasksubset, key=prioritykey, reverse=True):
         tmp.write(template.format(
             project=tasksubset[task]['project'],
@@ -218,17 +220,23 @@ def add(args, tasks):
 
 def priorities(args, tasks):
     # Find each distinct numeric priority with a sample description
+
+    if args.project:
+        tasks = {task: tasks[task] for task in tasks
+                 if tasks[task]['project'].startswith(args.project)}
+
     priorities = {}
     for task in [task for task in tasks if 'closed' not in tasks[task]]:
         try:
             if tasks[task]['priority'] not in priorities:
                 priorities[float(tasks[task]['priority'])] = \
+                    tasks[task]['project'] + ': ' + \
                     tasks[task]['description'].split('\n')[0]
         except (ValueError, KeyError):
             pass
 
     # Report
-    for priority in priorities:
+    for priority in sorted(priorities, reverse=True):
         print priority, priorities[priority]
 
 def projects(args, tasks):
@@ -349,6 +357,7 @@ def main():
 
     priosparser = subparser.add_parser('priorities',
                                        help="list priorities (for completion)")
+    priosparser.add_argument('-p', '--project')
     priosparser.set_defaults(func=priorities)
 
     mergeparser = subparser.add_parser('merge',

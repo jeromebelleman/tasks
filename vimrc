@@ -1,5 +1,8 @@
 set spell spelllang=en_gb
 
+" Comments
+syntax match Comment /^#.*/
+
 " Yellow fields
 syntax match Statement /^\(Project\|Opened\|UUID\|Description\):/
 syntax match Statement /\(Priority\|Closed\):/
@@ -27,9 +30,17 @@ fun! CompleteField(findstart, base)
     let today = strftime('%Y/%m/%d')
 
     if line[:col] =~ 'Priority:'
-      let priorities = []
+      " get filter if any
+      let filter = getline(1)
+      if filter[0] == '#'
+        let cmd = 'tasks priorities -p' . filter[2:]
+      else
+        let cmd = 'tasks priorities'
+      endif
+
       " move priorities and description into structure
-      for line in split(system('tasks priorities'), '\n')
+      let priorities = []
+      for line in split(system(cmd), '\n')
         let split = split(line)
         call add(priorities, {'word': split[0], 'info': join(split[1:], ' ')})
       endfor
