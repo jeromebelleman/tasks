@@ -31,11 +31,20 @@ fun! CompleteField(findstart, base)
 
     if line[:col] =~ 'Priority:'
       " get filter if any
-      let filter = getline(1)
-      if filter[0] == '#'
-        let cmd = 'tasks priorities -p' . filter[2:]
-      else
-        let cmd = 'tasks priorities'
+      if getline(line('.') + 2) =~ '^UUID: \+$' " If we're in 'add'
+        let project = split(getline('.'))[1]
+        if project == 'TODO'
+          let cmd = 'tasks priorities'
+        else
+          let cmd = 'tasks priorities -p' . project
+        endif
+      else " If we're in 'ls'
+        let filter = getline(1)
+        if filter[0] == '#'
+          let cmd = 'tasks priorities -p' . filter[2:]
+        else
+          let cmd = 'tasks priorities'
+        endif
       endif
 
       " move priorities and description into structure
