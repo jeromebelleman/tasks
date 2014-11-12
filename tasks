@@ -1,5 +1,9 @@
 #! /usr/bin/env python
 
+'''
+Manage tasks in projects, according to priority, using Vim
+'''
+
 import sys
 reload(sys)
 sys.setdefaultencoding('UTF8')
@@ -29,10 +33,22 @@ RETW      = re.compile(r'(\w+:"[^"]+")')
 NOPROJ    = 'noproject'
 
 def commit(directory):
-    def commit():
+    '''
+    Run git commit
+    '''
+
+    def gitcommit():
+        '''
+        Run git commit
+        '''
+
         subprocess.check_call(['git', 'commit', '-qmAutocommit'], cwd=directory)
 
     def add():
+        '''
+        Run git add
+        '''
+
         subprocess.check_call(['git', 'add', 'tasks.json'], cwd=directory)
 
     try:
@@ -42,14 +58,22 @@ def commit(directory):
         add()
 
     try:
-        commit()
+        gitcommit()
     except subprocess.CalledProcessError:
         pass
 
 class RecurringException(Exception):
+    '''
+    Recurring exception
+    '''
+
     pass
 
 def loadtasks(directory):
+    '''
+    Load tasks from file
+    '''
+
     try:
         with open(directory + '/tasks.json') as fhl:
             return dict(json.load(fhl))
@@ -57,12 +81,24 @@ def loadtasks(directory):
         return {}
 
 def dumptasks(directory, tasks):
+    '''
+    Dump tasks to file
+    '''
+
     with open(directory + '/tasks.json', 'w') as fhl:
         json.dump(sorted(tasks.items()), fhl, indent=4)
     commit(directory)
 
 def parse(fhl):
+    '''
+    Parse task forms from file
+    '''
+
     def edit(task):
+        '''
+        Edit task
+        '''
+
         task['description'] = task['description'].strip()
         if task['project'] and task['description'] and \
             'TODO' not in (task['project'], task['description']):
@@ -102,7 +138,7 @@ def parse(fhl):
                 uuid4 = match.group('uuid')
                 continue
 
-            if line =='Description:\n':
+            if line == 'Description:\n':
                 infields = False
         else:
             if line == '--\n':
@@ -116,8 +152,16 @@ def parse(fhl):
 
     return tasks
 
-def ls(args, tasks):
+def lscb(args, tasks):
+    '''
+    List and edit tasks
+    '''
+
     def prioritykey(task):
+        '''
+        Return sorting priority key
+        '''
+
         try:
             priority = tasks[task]['priority']
             try:
@@ -127,7 +171,7 @@ def ls(args, tasks):
                 due = datetime.date(due.year, due.month, due.day)
                 return topprio - (due - datetime.date.today()).days
         except TypeError: # When topprio is None
-                return -time.mktime(due.timetuple())
+            return -time.mktime(due.timetuple())
         except KeyError:
             return None
 
@@ -209,7 +253,11 @@ def ls(args, tasks):
     # Write tasks to file
     dumptasks(args.directory, tasks)
 
-def add(args, tasks):
+def addcb(args, tasks):
+    '''
+    Add tasks
+    '''
+
     # Load template
     with open(args.shared + '/template') as fhl:
         template = fhl.read()
@@ -237,8 +285,10 @@ def add(args, tasks):
     # Write tasks to file
     dumptasks(args.directory, tasks)
 
-def priorities(args, tasks):
-    # Find each distinct numeric priority with a sample description
+def prioritiescb(args, tasks):
+    '''
+    Print each distinct numeric priority with a sample description
+    '''
 
     if args.project:
         tasks = {task: tasks[task] for task in tasks
@@ -258,11 +308,19 @@ def priorities(args, tasks):
     for priority in sorted(priorities, reverse=True):
         print priority, priorities[priority]
 
-def projects(args, tasks):
+def projectscb(_, tasks):
+    '''
+    List projects
+    '''
+
     for project in sorted(set([tasks[task]['project'] for task in tasks])):
         print project
 
-def merge(args, tasks):
+def mergecb(args, _):
+    '''
+    Merge git repositories
+    '''
+
     try:
         subprocess.check_call(['git', 'remote', 'add', 'remote',
                                args.repository], cwd=args.directory)
@@ -274,6 +332,10 @@ def merge(args, tasks):
         pass
 
 def importcb(args, tasks):
+    '''
+    Import tasks from Taskwarrior
+    '''
+
     try:
         fhl = open(args.filepath)
     except IOError, exc:
@@ -353,6 +415,10 @@ def importcb(args, tasks):
     fhl.close()
 
 def main():
+    '''
+    Main function
+    '''
+
     # Arguments
     parser = argparse.ArgumentParser(description="Manage tasks")
     parser.add_argument('-d', '--directory', help="task directory",
@@ -362,28 +428,28 @@ def main():
     subparser = parser.add_subparsers()
 
     addparser = subparser.add_parser('add', help="add tasks")
-    addparser.set_defaults(func=add)
+    addparser.set_defaults(func=addcb)
 
     lsparser = subparser.add_parser('ls', help="list tasks")
     lsparser.add_argument('-p', '--project')
     lsparser.add_argument('-c', '--closed', help="display closed tasks too",
                           action='store_true')
-    lsparser.set_defaults(func=ls)
+    lsparser.set_defaults(func=lscb)
 
     projectsparser = subparser.add_parser('projects',
                                           help="list projects (for completion)")
-    projectsparser.set_defaults(func=projects)
+    projectsparser.set_defaults(func=projectscb)
 
     priosparser = subparser.add_parser('priorities',
                                        help="list priorities (for completion)")
     priosparser.add_argument('-p', '--project')
-    priosparser.set_defaults(func=priorities)
+    priosparser.set_defaults(func=prioritiescb)
 
     mergeparser = subparser.add_parser('merge',
                                         help="merge from other repository")
     mergeparser.add_argument('repository', help="tasks directory",
                               type=os.path.expanduser)
-    mergeparser.set_defaults(func=merge)
+    mergeparser.set_defaults(func=mergecb)
 
     importparser = subparser.add_parser('import',
                                         help="import from Taskwarrior")
