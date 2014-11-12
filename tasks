@@ -227,7 +227,10 @@ def lscb(args, tasks):
     unchanged = []
     for task in newtasks:
         for field in newtasks[task]:
-            if newtasks[task][field] != tasks[task][field]:
+            try:
+                if newtasks[task][field] != tasks[task][field]:
+                    break
+            except KeyError:
                 break
         else:
             unchanged.append(task)
