@@ -119,7 +119,7 @@ def parse(fhl):
 def ls(args, tasks):
     def prioritykey(task):
         try:
-            priority = tasksubset[task]['priority']
+            priority = tasks[task]['priority']
             try:
                 return float(priority)
             except ValueError:
@@ -145,28 +145,26 @@ def ls(args, tasks):
             pass
 
     # Filter by whatever is specified in args
-    tasksubset = tasks
     if args.project:
-        tasksubset = {task: tasksubset[task] for task in tasksubset
-                      if tasksubset[task]['project'].startswith(args.project)}
+        tasks = {task: tasks[task] for task in tasks
+                    if tasks[task]['project'].startswith(args.project)}
     if not args.closed:
-        tasksubset = {task: tasksubset[task] for task in tasksubset
-                      if 'closed' not in tasksubset[task]}
+        tasks = {task: tasks[task] for task in tasks
+                    if 'closed' not in tasks[task]}
 
     # Write tasks to temporary file
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
     if args.project:
         print >> tmp, '# ' + args.project
-    for task in sorted(tasksubset, key=prioritykey, reverse=True):
+    for task in sorted(tasks, key=prioritykey, reverse=True):
         tmp.write(template.format(
-            project=tasksubset[task]['project'],
-            priority=tasksubset[task]['priority']
-                     if 'priority' in tasksubset[task] else '',
-            opened=tasksubset[task]['opened'],
-            closed=tasksubset[task]['closed']
-                   if 'closed' in tasksubset[task] else '',
+            project=tasks[task]['project'],
+            priority=tasks[task]['priority']
+                if 'priority' in tasks[task] else '',
+            opened=tasks[task]['opened'],
+            closed=tasks[task]['closed'] if 'closed' in tasks[task] else '',
             uuid=task,
-            description=tasksubset[task]['description'],
+            description=tasks[task]['description'],
         ))
         print >> tmp, '\n--\n'
     tmp.flush()
@@ -176,15 +174,37 @@ def ls(args, tasks):
 
     # Parse tasks
     with open(tmp.name) as fhl:
-        newtasksubset = parse(fhl)
+        newtasks = parse(fhl)
 
+    # Identify tasks to be removed. To be done before changes are spotted.
+    removal = set(tasks) - set(newtasks)
+
+    # Only keep differing tasks
+    unchanged = []
+    for task in newtasks:
+        for field in newtasks[task]:
+            if newtasks[task][field] != tasks[task][field]:
+                break
+        else:
+            unchanged.append(task)
+    for task in unchanged:
+        del newtasks[task]
+
+    # Load latest tasks only now, i.e. not before you spot differences lest
+    # you overwrite changes made in the meantime.
+    # Still need load tasks again in case a new one has been added in the
+    # meantime.
     tasks = loadtasks(args.directory)
+
     # Apply changes
-    for task in newtasksubset:
-        tasks[task] = newtasksubset[task]
+    for task in newtasks:
+        tasks[task] = newtasks[task]
     # Remove tasks
-    for task in set(tasksubset) - set(newtasksubset):
-        del tasks[task]
+    for task in removal:
+        try:
+            del tasks[task]
+        except KeyError:
+            pass
 
     # Write tasks to file
     dumptasks(args.directory, tasks)
