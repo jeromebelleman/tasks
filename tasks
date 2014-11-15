@@ -18,6 +18,8 @@ import json
 import uuid
 
 # TODO Recurring tasks
+# TODO Add tasks from ls (And only use ls?)
+# TODO Dereference full path when adding remotes
 
 DATEFMT = '%Y/%m/%d'
 
@@ -169,7 +171,8 @@ def lscb(args, tasks):
             except ValueError:
                 due = datetime.datetime.strptime(priority, DATEFMT)
                 due = datetime.date(due.year, due.month, due.day)
-                return topprio - (due - datetime.date.today()).days
+                # Add 1 to priority since day before last deserves top priority
+                return topprio - (due - datetime.date.today()).days + 1
         except TypeError: # When topprio is None
             return -time.mktime(due.timetuple())
         except KeyError:
