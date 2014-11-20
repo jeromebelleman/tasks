@@ -19,7 +19,6 @@ import uuid
 
 # TODO Recurring tasks
 # TODO Add tasks from ls (And only use ls?)
-# TODO Dereference full path when adding remotes
 
 DATEFMT = '%Y/%m/%d'
 
@@ -322,20 +321,35 @@ def projectscb(_, tasks):
     for project in sorted(set([tasks[task]['project'] for task in tasks])):
         print project
 
-def mergecb(args, _):
+def sync(args, cmd):
     '''
-    Merge git repositories
+    Run sync command with git repository
     '''
 
+    repository = os.path.abspath(os.path.expanduser(args.repository))
     try:
         subprocess.check_call(['git', 'remote', 'add', 'remote',
-                               args.repository], cwd=args.directory)
-        subprocess.check_call(['git', 'pull', 'remote', 'master'],
+                               repository], cwd=args.directory)
+        subprocess.check_call(['git', cmd, 'remote', 'master'],
                               cwd=args.directory)
         subprocess.check_call(['git', 'remote', 'remove', 'remote'],
                               cwd=args.directory)
     except subprocess.CalledProcessError:
         pass
+
+def pullcb(args, _):
+    '''
+    Pull from git repository
+    '''
+
+    sync(args, 'pull')
+
+def pushcb(args, _):
+    '''
+    Push to git repository
+    '''
+
+    sync(args, 'push')
 
 def importcb(args, tasks):
     '''
@@ -451,11 +465,16 @@ def main():
     priosparser.add_argument('-p', '--project')
     priosparser.set_defaults(func=prioritiescb)
 
-    mergeparser = subparser.add_parser('merge',
-                                        help="merge from other repository")
-    mergeparser.add_argument('repository', help="tasks directory",
+    pullparser = subparser.add_parser('pull',
+                                        help="pull from other repository")
+    pullparser.add_argument('repository', help="tasks directory",
                               type=os.path.expanduser)
-    mergeparser.set_defaults(func=mergecb)
+    pullparser.set_defaults(func=pullcb)
+
+    pushparser = subparser.add_parser('push', help="push to other repository")
+    pushparser.add_argument('repository', help="tasks directory",
+                            type=os.path.expanduser)
+    pushparser.set_defaults(func=pushcb)
 
     importparser = subparser.add_parser('import',
                                         help="import from Taskwarrior")
