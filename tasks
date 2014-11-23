@@ -17,8 +17,6 @@ import tempfile
 import json
 import uuid
 
-# TODO Failed git remote calls shouldn't cancel the whole operation
-
 DATEFMT = '%Y/%m/%d'
 
 REPROPRIO = re.compile(r'''^Project:[ ]+(?P<project>\S+)[ ]+
@@ -313,15 +311,10 @@ def sync(args, cmd):
     '''
 
     repository = os.path.abspath(os.path.expanduser(args.repository))
-    try:
-        subprocess.check_call(['git', 'remote', 'add', 'remote',
-                               repository], cwd=args.directory)
-        subprocess.check_call(['git', cmd, 'remote', 'master'],
-                              cwd=args.directory)
-        subprocess.check_call(['git', 'remote', 'remove', 'remote'],
-                              cwd=args.directory)
-    except subprocess.CalledProcessError:
-        pass
+    subprocess.call(['git', 'remote', 'add', 'remote', repository],
+                    cwd=args.directory)
+    subprocess.call(['git', cmd, 'remote', 'master'], cwd=args.directory)
+    subprocess.call(['git', 'remote', 'remove', 'remote'], cwd=args.directory)
 
 def pullcb(args, _):
     '''
