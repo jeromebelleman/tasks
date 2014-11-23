@@ -14,6 +14,9 @@ syntax match Todo /\<TODO\>/
 " Disable spelling on UUID
 syntax match NoSpell /\(\x\+-\)\{4}\x\+/ contains=@NoSpell
 
+" Disable spell checking on some patterns
+syntax match Technical /\<\(\S\+\)\?\(\d\|[_./~]\)\+\(\S\+\)\?\>/ contains=@NoSpell
+
 com AddTask call AddTask()
 
 fun! AddTask()
