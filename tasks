@@ -18,7 +18,7 @@ import json
 import uuid
 
 # TODO Recurring tasks
-# TODO Add tasks from ls (And only use ls?)
+# TODO Complete priority from top-level project
 
 DATEFMT = '%Y/%m/%d'
 
@@ -153,7 +153,7 @@ def parse(fhl):
 
     return tasks
 
-def lscb(args, tasks):
+def editcb(args, tasks):
     '''
     List and edit tasks
     '''
@@ -267,28 +267,15 @@ def addcb(args, tasks):
     with open(args.shared + '/template') as fhl:
         template = fhl.read()
 
-    # Open temporary file
-    tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
-    tmp.write(template.format(
-                              project='TODO',
-                              priority='',
-                              opened=datetime.date.today().strftime(DATEFMT),
-                              closed='',
-                              uuid='',
-                              description='TODO',
-                             ))
-    tmp.flush()
-
-    # Run Vim
-    subprocess.call(['vim', '-S', args.shared + '/vimrc', tmp.name])
-
-    # Add new tasks
-    tasks = loadtasks(args.directory)
-    with open(tmp.name) as fhl:
-        tasks = dict(tasks.items() + parse(fhl).items())
-
-    # Write tasks to file
-    dumptasks(args.directory, tasks)
+    # Print new task
+    print template.format(
+                          project='TODO',
+                          priority='',
+                          opened=datetime.date.today().strftime(DATEFMT),
+                          closed='',
+                          uuid='',
+                          description='TODO',
+                         )
 
 def prioritiescb(args, tasks):
     '''
@@ -447,14 +434,14 @@ def main():
                         default='/usr/share/tasks')
     subparser = parser.add_subparsers()
 
-    addparser = subparser.add_parser('add', help="add tasks")
+    addparser = subparser.add_parser('add', help="add tasks (for Vim)")
     addparser.set_defaults(func=addcb)
 
-    lsparser = subparser.add_parser('ls', help="list tasks")
-    lsparser.add_argument('-p', '--project')
-    lsparser.add_argument('-c', '--closed', help="display closed tasks too",
+    editparser = subparser.add_parser('edit', help="list tasks")
+    editparser.add_argument('-p', '--project')
+    editparser.add_argument('-c', '--closed', help="display closed tasks too",
                           action='store_true')
-    lsparser.set_defaults(func=lscb)
+    editparser.set_defaults(func=editcb)
 
     projectsparser = subparser.add_parser('projects',
                                           help="list projects (for completion)")

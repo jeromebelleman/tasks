@@ -14,6 +14,13 @@ syntax match Todo /\<TODO\>/
 " Disable spelling on UUID
 syntax match NoSpell /\(\x\+-\)\{4}\x\+/ contains=@NoSpell
 
+com AddTask call AddTask()
+
+fun! AddTask()
+  call search('^--')
+  call append(line('.'), [''] + split(system('./tasks add'), '\n') + ['--'])
+endfun
+
 fun! CompleteField(findstart, base)
   let line = getline('.')
   let col = col('.')
