@@ -174,6 +174,16 @@ def editcb(args, tasks):
         except KeyError:
             return None
 
+    def closedkey(task):
+        '''
+        Return sorting closed date key
+        '''
+
+        try:
+            return datetime.datetime.strptime(tasks[task]['closed'], DATEFMT)
+        except KeyError:
+            return datetime.datetime.fromtimestamp(0)
+
     # Load template
     with open(args.shared + '/template') as fhl:
         template = fhl.read()
@@ -199,7 +209,8 @@ def editcb(args, tasks):
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
     if args.project:
         print >> tmp, '# ' + args.project
-    for task in sorted(tasks, key=prioritykey, reverse=True):
+    key = closedkey if args.closed else prioritykey
+    for task in sorted(tasks, key=key, reverse=True):
         tmp.write(template.format(
             project=tasks[task]['project'],
             priority=tasks[task]['priority']
@@ -296,6 +307,7 @@ def prioritiescb(args, tasks):
     # Report
     for priority in sorted(priorities, reverse=True):
         print priority, priorities[priority]
+
 
 def projectscb(_, tasks):
     '''
@@ -431,8 +443,9 @@ def main():
 
     editparser = subparser.add_parser('edit', help="list tasks")
     editparser.add_argument('-p', '--project')
-    editparser.add_argument('-c', '--closed', help="display closed tasks too",
-                          action='store_true')
+    editparser.add_argument('-c', '--closed',
+                            help="display and sort by closed tasks",
+                            action='store_true')
     editparser.set_defaults(func=editcb)
 
     projectsparser = subparser.add_parser('projects',
