@@ -17,8 +17,7 @@ import tempfile
 import json
 import uuid
 
-# TODO Recurring tasks
-# TODO Complete priority from top-level project
+# TODO Failed git remote calls shouldn't cancel the whole operation
 
 DATEFMT = '%Y/%m/%d'
 
