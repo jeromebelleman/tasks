@@ -21,7 +21,7 @@ com AddTask call AddTask()
 
 fun! AddTask()
   call search('^--')
-  call append(line('.'), [''] + split(system('./tasks add'), '\n') + ['--'])
+  call append(line('.'), [''] + split(system('tasks add'), '\n') + ['--'])
 endfun
 
 fun! CompleteField(findstart, base)
