@@ -60,6 +60,13 @@ def commit(directory):
     except subprocess.CalledProcessError:
         pass
 
+class EditException(Exception):
+    '''
+    Edit exception
+    '''
+
+    pass
+
 class RecurringException(Exception):
     '''
     Recurring exception
@@ -104,6 +111,8 @@ def parse(fhl):
                 tasks[uuid4] = task
             else:
                 tasks[str(uuid.uuid4())] = task
+        else:
+            raise EditException
 
     tasks = {}
 
@@ -223,12 +232,17 @@ def editcb(args, tasks):
         print >> tmp, '\n--\n'
     tmp.flush()
 
-    # Run Vim
-    subprocess.call(['vim', '-S', args.shared + '/vimrc', tmp.name])
+    while True:
+        # Run Vim
+        subprocess.call(['vim', '-S', args.shared + '/vimrc', tmp.name])
 
-    # Parse tasks
-    with open(tmp.name) as fhl:
-        newtasks = parse(fhl)
+        # Parse tasks
+        try:
+            with open(tmp.name) as fhl:
+                newtasks = parse(fhl)
+                break
+        except EditException:
+            pass
 
     # Identify tasks to be removed. To be done before changes are spotted.
     removal = set(tasks) - set(newtasks)
