@@ -17,6 +17,9 @@ import tempfile
 import json
 import uuid
 
+# TODO Priority by position?
+# TODO Folding
+
 DATEFMT = '%Y/%m/%d'
 
 REPROPRIO = re.compile(r'''^Project:[ ]+(?P<project>\S+)[ ]+
@@ -49,6 +52,13 @@ def commit(directory):
 
         subprocess.check_call(['git', 'add', 'tasks.json'], cwd=directory)
 
+    def gitgc():
+        '''
+        Run git gc
+        '''
+
+        subprocess.check_call(['git', 'gc'], cwd=directory)
+
     try:
         add()
     except subprocess.CalledProcessError:
@@ -57,6 +67,11 @@ def commit(directory):
 
     try:
         gitcommit()
+    except subprocess.CalledProcessError:
+        pass
+
+    try:
+        gitgc()
     except subprocess.CalledProcessError:
         pass
 
