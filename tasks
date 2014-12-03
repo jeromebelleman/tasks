@@ -19,6 +19,7 @@ import uuid
 
 # TODO Priority by position?
 # TODO Folding
+# TODO Completion for insert today's date anywhere
 
 DATEFMT = '%Y/%m/%d'
 

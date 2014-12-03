@@ -1,5 +1,6 @@
 set spell spelllang=en_gb
 set clipboard=unnamed
+set foldmethod=marker
 
 " Comments
 syntax match Comment /^#.*/
