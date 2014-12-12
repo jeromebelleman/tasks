@@ -53,26 +53,23 @@ def commit(directory):
 
         subprocess.check_call(['git', 'add', 'tasks.json'], cwd=directory)
 
-    def gitgc():
-        '''
-        Run git gc
-        '''
-
-        subprocess.check_call(['git', 'gc'], cwd=directory)
-
     try:
         add()
     except subprocess.CalledProcessError:
         subprocess.check_call(['git', 'init', '-q'], cwd=directory)
         add()
 
+    # FIXME What's the point in using check_call() if it's to not do anything
+    # with the exception?
     try:
         gitcommit()
     except subprocess.CalledProcessError:
         pass
 
+    # FIXME What's the point in using check_call() if it's to not do anything
+    # with the exception?
     try:
-        gitgc()
+        gitgc(directory)
     except subprocess.CalledProcessError:
         pass
 
@@ -89,6 +86,13 @@ class RecurringException(Exception):
     '''
 
     pass
+
+def gitgc(directory):
+    '''
+    Run git gc
+    '''
+
+    subprocess.check_call(['git', 'gc'], cwd=directory)
 
 def loadtasks(directory):
     '''
@@ -357,6 +361,7 @@ def sync(args, cmd):
                     cwd=args.directory)
     subprocess.call(['git', cmd, 'remote', 'master'], cwd=args.directory)
     subprocess.call(['git', 'remote', 'remove', 'remote'], cwd=args.directory)
+    gitgc(repository)
 
 def pullcb(args, _):
     '''
