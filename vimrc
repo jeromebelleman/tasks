@@ -74,6 +74,8 @@ fun! CompleteField(findstart, base)
       if today =~ '^' . a:base
         call add(res, today)
       endif
+    else
+        call add(res, today)
     endif
 
     return res
