@@ -16,6 +16,7 @@ import re
 import tempfile
 import json
 import uuid
+from itertools import izip_longest as izipl
 
 # TODO Priority by position?
 # TODO Folding
@@ -269,11 +270,9 @@ def editcb(args, tasks):
     # Only keep differing tasks
     unchanged = []
     for task in newtasks:
-        for field in newtasks[task]:
-            try:
-                if newtasks[task][field] != tasks[task][field]:
-                    break
-            except KeyError:
+        for field, newfield in izipl(tasks[task], newtasks[task]):
+            if not field and newfield or field and not newfield or \
+               tasks[task][field] != newtasks[task][newfield]:
                 break
         else:
             unchanged.append(task)
