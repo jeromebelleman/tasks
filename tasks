@@ -270,12 +270,16 @@ def editcb(args, tasks):
     # Only keep differing tasks
     unchanged = []
     for task in newtasks:
-        for field, newfield in izipl(tasks[task], newtasks[task]):
-            if not field and newfield or field and not newfield or \
-               tasks[task][field] != newtasks[task][newfield]:
-                break
-        else:
-            unchanged.append(task)
+        try:
+            for field, newfield in izipl(tasks[task], newtasks[task]):
+                if not field and newfield or field and not newfield or \
+                    tasks[task][field] != newtasks[task][newfield]:
+                    break
+            else:
+                unchanged.append(task)
+        except KeyError:
+            # When task not in tasks, i.e. it's a new task
+            pass
     for task in unchanged:
         del newtasks[task]
 
