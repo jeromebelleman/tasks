@@ -1,0 +1,111 @@
+.TH "TASKS" "1" "November 2015" "" ""
+.hy
+.SH NAME
+.PP
+tasks \- Manage tasks
+.SH SYNOPSIS
+.PP
+\f[C]tasks\ [\-h]\ [\-d\ DIRECTORY]\ [\-s\ SHARED]\ {edit,projects,pull,push,import}\ ...\f[]
+.PP
+\f[C]tasks\ edit\ [\-p\ PROJECT]\ [\-c]\f[]
+.PP
+\f[C]tasks\ projects\f[]
+.PP
+\f[C]tasks\ pull\ DIRECTORY\f[]
+.PP
+\f[C]tasks\ push\ DIRECTORY\f[]
+.PP
+\f[C]tasks\ import\ FILE\f[]
+.SH OPTIONS
+.TP
+.B \f[C]\-h,\ \-\-help\f[]
+Show help message and exit.
+.RS
+.RE
+.TP
+.B \f[C]\-d\ DIRECTORY,\ \-\-directory\ DIRECTORY\f[]
+Task directory.
+.RS
+.RE
+.TP
+.B \f[C]\-s\ SHARED,\ \-\-shared\ SHARED\f[]
+Shared directory, where the \f[B]vimrc\f[] file may be found.
+.RS
+.RE
+.SH EDITING TASKS
+.PP
+Reading, creating and editing tasks all take place with the
+\f[B]edit\f[] command, which will take you to a Vim buffer to perform
+all those operations.
+Once the buffer is saved and closed, the changes are written to disk.
+.SS THE VIM BUFFER
+.PP
+From inside Vim, you can use the \f[B]:AddTask\f[] command to add new
+tasks, ready for editing.
+Fields such as \f[I]Project\f[] and \f[I]Description\f[] are compulsory.
+Vim will reopen the buffer until you fill them out.
+.PP
+Completion is available for most fields with \f[B]CTRL\-U\f[]:
+.IP \[bu] 2
+In the \f[I]Project\f[] field, it will complete from the project path
+written so far.
+.IP \[bu] 2
+In the \f[I]Priority\f[] field, it will offer today\[aq]s date or
+complete from existing priorities, displaying a summary of the other
+tasks bearing this priority.
+.IP \[bu] 2
+In the \f[I]Opened\f[], \f[I]Closed\f[] fields and everywhere else, it
+will offer today\[aq]s date.
+.PP
+A task is closed by giving it a \f[I]Closed\f[] date.
+Removing tasks is carried out by removing it from the Vim buffer.
+.SS PROJECTS
+.PP
+Traditionally, projects and sub\-project paths are separated with dots,
+but the string can be whatever you like, really.
+Note that filtering by project disregards the separator and will simply
+filter by what the query string starts with.
+.SS PRIORITIES
+.PP
+There are 2 types of priorities used, and they try to play well with
+each other:
+.IP \[bu] 2
+Numeric priorities, the higher the value, the higher the priority.
+.IP \[bu] 2
+Due dates, which are set in the \f[I]Priority\f[] field as well.
+A numeric priority is computed on the fly from the due date, taking the
+number of remaining days off the highest of all priorities.
+This requires some calibration, and once this is done it works rather
+well.
+.PP
+Either way, higher priorities will show first in the buffer.
+.SS OPTIONS
+.TP
+.B \f[C]\-p\ PROJECT,\ \-\-project\ PROJECT\f[]
+Filter by PROJECT.
+.RS
+.RE
+.TP
+.B \f[C]\-c,\ \-\-closed\f[]
+Display and sort by closed tasks.
+.RS
+.RE
+.SH VERSION CONTROL
+.PP
+Each and every change written to disk is committed into a git
+repository.
+It works quite well to set up a central \f[I]bare\f[] repository on a
+server
+(http://git\-scm.com/book/en/v2/Git\-on\-the\-Server\-Getting\-Git\-on\-a\-Server)
+where you can use \f[B]task push\f[] and \f[B]task pull\f[] to keep your
+tasks in sync everywhere.
+.SH INTERNAL COMMANDS
+.PP
+The following sub\-commands are mostly used internally from the Vim
+buffer and running them manually doesn\[aq]t make much sense:
+.IP \[bu] 2
+\f[B]add\f[]
+.IP \[bu] 2
+\f[B]priorities\f[]
+.SH AUTHORS
+Jérôme Belleman.
