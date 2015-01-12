@@ -2,6 +2,7 @@ set spell spelllang=en_gb
 set clipboard=unnamed
 set foldmethod=marker
 set filetype=
+set nowrap
 
 " Comments
 syntax match Comment /^#.*/
