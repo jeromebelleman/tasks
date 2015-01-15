@@ -77,6 +77,7 @@ fun! CompleteField(findstart, base)
       endif
     else
         call add(res, today)
+        call add(res, strftime('%H:%M'))
     endif
 
     return res
