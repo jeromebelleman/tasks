@@ -19,7 +19,6 @@ import uuid
 from itertools import izip_longest as izipl
 
 # TODO Priority by position?
-# TODO Folding
 
 DATEFMT = '%Y/%m/%d'
 

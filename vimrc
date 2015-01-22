@@ -20,6 +20,21 @@ syntax match NoSpell /\(\x\+-\)\{4}\x\+/ contains=@NoSpell
 " Disable spell checking on some patterns
 syntax match Technical /\<\(\S\+\)\?\(\d\|[_./~]\)\+\(\S\+\)\?\>/ contains=@NoSpell
 
+" Folds
+set foldlevel=1
+syntax region taskFold start="^Project: " end="^--\n\n" transparent fold
+syntax sync fromstart
+set foldmethod=syntax
+
+set foldtext=TaskFoldText()
+function TaskFoldText()
+  let lines = getline(v:foldstart, v:foldstart+4)
+  let prio = matchstr(lines[0], "Priority: .*$")[10:]
+  let desc = lines[4][:65]
+
+  return desc . repeat('-', 70 - strlen(desc)) . prio
+endfunction
+
 com AddTask call AddTask()
 
 fun! AddTask()
