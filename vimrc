@@ -3,6 +3,7 @@ set clipboard=unnamed
 set foldmethod=marker
 set filetype=
 set nowrap
+set foldopen-=search
 
 " Comments
 syntax match Comment /^#.*/
