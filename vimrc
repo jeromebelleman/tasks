@@ -4,6 +4,7 @@ set foldmethod=marker
 set filetype=
 set nowrap
 set foldopen-=search
+set noswapfile
 
 " Comments
 syntax match Comment /^#.*/
