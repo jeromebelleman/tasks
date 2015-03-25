@@ -5,6 +5,7 @@ set filetype=
 set nowrap
 set foldopen-=search
 set noswapfile
+set iskeyword+=-
 
 " Comments
 syntax match Comment /^#.*/
