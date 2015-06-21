@@ -3,7 +3,6 @@
 from distutils.core import setup
 
 setup(name='tasks',
-      version='1.0',
       scripts=['tasks'],
       data_files=[
                   ('share/tasks', ['vimrc', 'template']),
