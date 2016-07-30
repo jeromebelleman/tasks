@@ -362,7 +362,8 @@ def sync(args, cmd):
                     cwd=args.directory)
     subprocess.call(['git', cmd, 'remote', 'master'], cwd=args.directory)
     subprocess.call(['git', 'remote', 'remove', 'remote'], cwd=args.directory)
-    gitgc(repository)
+    if not args.nogc:
+        gitgc(repository)
 
 def pullcb(args, _):
     '''
@@ -497,11 +498,15 @@ def main():
                                         help="pull from other repository")
     pullparser.add_argument('repository', help="tasks directory",
                               type=os.path.expanduser)
+    pullparser.add_argument('--nogc', help="don't collect garbage",
+                            action='store_true')
     pullparser.set_defaults(func=pullcb)
 
     pushparser = subparser.add_parser('push', help="push to other repository")
     pushparser.add_argument('repository', help="tasks directory",
                             type=os.path.expanduser)
+    pushparser.add_argument('--nogc', help="don't collect garbage",
+                            action='store_true')
     pushparser.set_defaults(func=pushcb)
 
     importparser = subparser.add_parser('import',
