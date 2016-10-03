@@ -10,13 +10,15 @@ sys.setdefaultencoding('UTF8')
 
 import os
 import argparse
-import datetime, time
+import datetime
+import time
 import subprocess
 import re
 import tempfile
 import json
 import uuid
 from itertools import izip_longest as izipl
+import yaml
 
 # TODO Priority by position?
 
@@ -25,13 +27,13 @@ DATEFMT = '%Y/%m/%d'
 REPROPRIO = re.compile(r'''^Project:[ ]+(?P<project>\S+)[ ]+
                             Priority:[ ]*(?P<priority>\S+)?''',
                        re.VERBOSE)
-REDATES   = re.compile(r'''^Opened:[ ]+(?P<opened>\d{4}/\d\d/\d\d)[ ]+
-                            Closed:[ ]*(?P<closed>\d{4}/\d\d/\d\d)?''',
-                       re.VERBOSE)
-REUUID    = re.compile(r'^UUID:[ ]+(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)')
-RETW      = re.compile(r'(\w+:"[^"]+")')
+REDATES = re.compile(r'''^Opened:[ ]+(?P<opened>\d{4}/\d\d/\d\d)[ ]+
+                          Closed:[ ]*(?P<closed>\d{4}/\d\d/\d\d)?''',
+                     re.VERBOSE)
+REUUID = re.compile(r'^UUID:[ ]+(?P<uuid>([0-9A-Fa-f]+-){4}[0-9A-Fa-f]+)')
+RETW = re.compile(r'(\w+:"[^"]+")')
 
-NOPROJ    = 'noproject'
+NOPROJ = 'noproject'
 
 def commit(directory):
     '''
@@ -145,9 +147,9 @@ def parse(fhl):
             if match:
                 uuid4 = None
                 task = {
-                        'project':     match.group('project'),
-                        'description': '',
-                       }
+                    'project':     match.group('project'),
+                    'description': '',
+                    }
                 if match.group('priority'):
                     task['priority'] = match.group('priority')
                 continue
@@ -178,7 +180,7 @@ def parse(fhl):
 
     return tasks
 
-def editcb(args, tasks):
+def editcb(args, cfg, tasks): # pylint: disable=unused-argument
     '''
     List and edit tasks
     '''
@@ -227,11 +229,15 @@ def editcb(args, tasks):
 
     # Filter by whatever is specified in args
     if args.project:
-        tasks = {task: tasks[task] for task in tasks
-                    if tasks[task]['project'].startswith(args.project)}
+        tasks = {
+            task: tasks[task] for task in tasks
+            if tasks[task]['project'].startswith(args.project)
+            }
     if not args.closed:
-        tasks = {task: tasks[task] for task in tasks
-                    if 'closed' not in tasks[task]}
+        tasks = {
+            task: tasks[task] for task in tasks
+            if 'closed' not in tasks[task]
+            }
 
     # Write tasks to temporary file
     tmp = tempfile.NamedTemporaryFile(dir=args.directory + '/tmp')
@@ -301,7 +307,7 @@ def editcb(args, tasks):
     # Write tasks to file
     dumptasks(args.directory, tasks)
 
-def addcb(args, tasks):
+def addcb(args, cfg, tasks): # pylint: disable=unused-argument
     '''
     Add tasks
     '''
@@ -312,15 +318,15 @@ def addcb(args, tasks):
 
     # Print new task
     print template.format(
-                          project='TODO',
-                          priority='',
-                          opened=datetime.date.today().strftime(DATEFMT),
-                          closed='',
-                          uuid='',
-                          description='TODO',
-                         )
+        project='TODO',
+        priority='',
+        opened=datetime.date.today().strftime(DATEFMT),
+        closed='',
+        uuid='',
+        description='TODO',
+        )
 
-def prioritiescb(args, tasks):
+def prioritiescb(args, cfg, tasks): # pylint: disable=unused-argument
     '''
     Print each distinct numeric priority with a sample description
     '''
@@ -344,7 +350,7 @@ def prioritiescb(args, tasks):
         print priority, priorities[priority]
 
 
-def projectscb(_, tasks):
+def projectscb(args, cfg, tasks): # pylint: disable=unused-argument
     '''
     List projects
     '''
@@ -352,7 +358,7 @@ def projectscb(_, tasks):
     for project in sorted(set([tasks[task]['project'] for task in tasks])):
         print project
 
-def sync(args, cmd):
+def sync(args, cfg, cmd):
     '''
     Run sync command with git repository
     '''
@@ -362,24 +368,24 @@ def sync(args, cmd):
                     cwd=args.directory)
     subprocess.call(['git', cmd, 'remote', 'master'], cwd=args.directory)
     subprocess.call(['git', 'remote', 'remove', 'remote'], cwd=args.directory)
-    if not args.nogc:
+    if 'nogc' not in cfg or not cfg['nogc']:
         gitgc(repository)
 
-def pullcb(args, _):
+def pullcb(args, cfg, tasks): # pylint: disable=unused-argument
     '''
     Pull from git repository
     '''
 
-    sync(args, 'pull')
+    sync(args, cfg, 'pull')
 
-def pushcb(args, _):
+def pushcb(args, cfg, tasks): # pylint: disable=unused-argument
     '''
     Push to git repository
     '''
 
-    sync(args, 'push')
+    sync(args, cfg, 'push')
 
-def importcb(args, tasks):
+def importcb(args, cfg, tasks): # pylint: disable=unused-argument
     '''
     Import tasks from Taskwarrior
     '''
@@ -450,7 +456,7 @@ def importcb(args, tasks):
             else:
                 print >> sys.stderr, "Unexpected tags: " + tags
                 return 1
-            
+
             task['description'] = \
                 '\n\n'.join([task['description']] + annotations)
 
@@ -469,9 +475,13 @@ def main():
 
     # Arguments
     parser = argparse.ArgumentParser(description="Manage tasks")
-    parser.add_argument('-d', '--directory', help="task directory",
-                        default='~/.tasks', type=os.path.expanduser)
-    parser.add_argument('-s', '--shared', help="shared directory",
+    parser.add_argument('-d',
+                        '--directory', help="task directory",
+                        default='~/.tasks',
+                        type=os.path.expanduser)
+    parser.add_argument('-s',
+                        '--shared',
+                        help="shared directory",
                         default='/usr/share/tasks')
     subparser = parser.add_subparsers()
 
@@ -480,7 +490,8 @@ def main():
 
     editparser = subparser.add_parser('edit', help="list tasks")
     editparser.add_argument('-p', '--project')
-    editparser.add_argument('-c', '--closed',
+    editparser.add_argument('-c',
+                            '--closed',
                             help="display and sort by closed tasks",
                             action='store_true')
     editparser.set_defaults(func=editcb)
@@ -494,25 +505,30 @@ def main():
     priosparser.add_argument('-p', '--project')
     priosparser.set_defaults(func=prioritiescb)
 
-    pullparser = subparser.add_parser('pull',
-                                        help="pull from other repository")
-    pullparser.add_argument('repository', help="tasks directory",
-                              type=os.path.expanduser)
-    pullparser.add_argument('--nogc', help="don't collect garbage",
+    pullparser = subparser.add_parser('pull', help="pull from other repository")
+    pullparser.add_argument('repository',
+                            help="tasks directory",
+                            type=os.path.expanduser)
+    pullparser.add_argument('--nogc',
+                            help="don't collect garbage",
                             action='store_true')
     pullparser.set_defaults(func=pullcb)
 
     pushparser = subparser.add_parser('push', help="push to other repository")
-    pushparser.add_argument('repository', help="tasks directory",
+    pushparser.add_argument('repository',
+                            help="tasks directory",
                             type=os.path.expanduser)
-    pushparser.add_argument('--nogc', help="don't collect garbage",
+    pushparser.add_argument('--nogc',
+                            help="don't collect garbage",
                             action='store_true')
     pushparser.set_defaults(func=pushcb)
 
     importparser = subparser.add_parser('import',
                                         help="import from Taskwarrior")
-    importparser.add_argument(metavar='file', dest='filepath',
-                              type=os.path.expanduser, help="file path")
+    importparser.add_argument(metavar='file',
+                              dest='filepath',
+                              type=os.path.expanduser,
+                              help="file path")
     importparser.set_defaults(func=importcb)
 
     args = parser.parse_args()
@@ -524,11 +540,18 @@ def main():
         except OSError:
             pass
 
+    # Read config
+    try:
+        with open(args.directory + '/tasks.yaml') as fhl:
+            cfg = yaml.load(fhl)
+    except IOError:
+        cfg = {}
+
     # Load tasks
     tasks = loadtasks(args.directory)
 
     # Run
-    args.func(args, tasks)
+    args.func(args, cfg, tasks)
 
 if __name__ == '__main__':
     sys.exit(main())
