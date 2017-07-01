@@ -1,3 +1,17 @@
+Manage your tasks in freedom with Vim, organise them by project, store them
+in different git repositories on different devices and sync them effortlessly.
+
+I've always been keen on using [Taskwarrior](http://taskwarrior.org), a
+powerful, fast command line task manager. But over time, I realised that
+I simply didn't use it a lot. When asking myself why, I understood that it
+was because adding/editing tasks wasn't as effortless as it should be, so
+it was just easier for me to not do it and try and remember what I had to do.
+
+This wasn't a solution, obviously, so I decided to write a new task manager,
+concentrating on its usability so that adding/editing tasks would become
+sufficiently comfortable that I could be encouraged to do it: `tasks` was
+the result, and little did I know then that it would change my life.
+
 # NAME
 
 tasks - Manage tasks
